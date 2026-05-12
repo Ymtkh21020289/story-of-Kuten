@@ -46,6 +46,19 @@
             color: #f1c40f;
             letter-spacing: 2px;
         }
+        .conlang-char {
+            display: inline-block;
+            /* 作成したスプライトシート画像を指定 */
+            background-image: url('conlang_font.png'); 
+            background-repeat: no-repeat;
+            /* 1文字の表示サイズ（例：32px） */
+            width: 32px;
+            height: 32px;
+            /* 文字と文字の間隔調整 */
+            margin-right: 2px;
+            /* 地の文と高さを合わせる調整 */
+            vertical-align: middle; 
+        }
     </style>
 </head>
 <body>
@@ -96,9 +109,15 @@
 
         // 石碑ごとのメッセージデータ (x,y をキーにする)
         const eventMessages = {
-            "3,3": "石碑に文字が刻まれている。<br><span class='alien-text'>⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚</span>",
-            "7,7": "古びた石碑だ。<br><span class='alien-text'>⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚ ⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚</span>",
-            "7,13": "他のものとは少し違う文字だ。<br><span class='alien-text'>⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚ ⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚ ⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚</span>"
+            "3,3": "石碑に文字が刻まれている。<br>「あいうえお」",
+            "7,7": "古びた石碑だ。<br>「かきくけこ　さしすせそ」",
+            "7,13": "他のものとは少し違う文字だ。<br>「あかん」"
+        };
+
+        const FONT_CONF = {
+            charWidth: 32,  // 1文字の横幅(px)
+            charHeight: 32, // 1文字の縦幅(px)
+            cols: 18        // 画像の横の列数
         };
 
         // プレイヤー情報
@@ -109,6 +128,15 @@
             dirY: 1, // 初期は下向き
             color: '#e74c3c'
         };
+
+        const conlangOrder = [
+            'a','ya','ta','la','ka','pa','ha','sa','na','ma','tya','lya','kya','pya','hya','sya','mya','pha', // 1行目
+            'i','yi','ti','li','ki','pi','hi','si','ni','mi','tyi','lyi','kyi','pyi','hyi','syi','myi','phi', // 2行目
+            'u','yu','tu','lu','ku','pu','hu','su','nu','mu','tyu','lyu','kyu','pyu','hyu','syu','myu','phu', // 3行目
+            'e','ye','te','le','ke','pe','he','se','ne','me','tye','lye','kye','pye','hye','sye','mye','phe', // 4行目
+            'o','yo','to','lo','ko','po','ho','so','no','mo','tyo','lyo','kyo','pyo','hyo','syo','myo','pho', // 5行目
+            'q','y','t','l','k','p','h','s','n','m','nn' // 6行目
+        ];
 
         let isMessageOpen = false;
 
@@ -202,21 +230,41 @@
             }
         });
 
-        // 目の前を調べる処理
         function checkEvent() {
             let targetX = player.x + player.dirX;
             let targetY = player.y + player.dirY;
-
-            // 目の前が石碑(2)か判定
+        
             if (map[targetY] && map[targetY][targetX] === TILE_MONUMENT) {
                 let key = `${targetX},${targetY}`;
-                let text = eventMessages[key] || "何も書かれていないようだ。";
-                showMessage(text);
+                // メッセージを取得（生テキスト）
+                let rawText = eventMessages[key] || "何も書かれていないようだ。";
+                
+                // 【重要】ここで、「地の文」と「創作言語」を分けて表示する
+                // 例として、生のテキストをそのまま translateToConlang に渡すと日本語の地の文も変換されてしまうので、
+                // eventMessages の書き方を工夫します。
+                
+                let splitText = rawText.split("<br>"); // <br>で分割
+                let description = splitText[0]; // 地の文："石碑に文字が刻まれている。"
+                let alienWords = splitText[1] ? splitText[1] : ""; // 創作言語部分："「あいうえお」"
+                
+                // 創作言語部分だけを変換
+                let translatedAlienWords = translateToConlang(alienWords);
+                
+                // 画面に表示するHTMLを組み立てる
+                let finalHtml = description + "<br><span class='alien-text'>" + translatedAlienWords + "</span>";
+                
+                showMessage(finalHtml);
             }
         }
 
-        // メッセージウィンドウの制御
         function showMessage(text) {
+            // 最初の行（地の文）と、カギカッコの中身（創作言語）を分けるような工夫をします。
+            // 今回はシンプルに、テキスト全体を変換にかけてから表示します。
+            // ※「石碑に〜」という地の文まで変換されないよう、特定のタグの中だけ変換する仕組みです。
+            
+            // 例: "石碑に文字が刻まれている。<br><span class='alien-text'>あいうえお</span>" という形式でデータを作り、
+            // ひらがな部分だけを translateToConlang() で包むのもありです。
+            
             messageBox.innerHTML = text;
             messageBox.style.display = 'block';
             isMessageOpen = true;
