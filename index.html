@@ -56,41 +56,109 @@
             /* 画像が透過背景に黒文字の場合、これで白背景の上に黒文字が表示されます */
         }
         #ui-area { display: flex; gap: 20px; width: 800px; } /* 横幅を広げる */
-    #main-panel { flex: 2; }
-    #dictionary-panel { 
-        flex: 1; 
-        background: #f8f9fa; 
-        border: 2px solid #2c3e50; 
-        padding: 10px; 
-        max-height: 500px; 
-        overflow-y: auto; 
-    }
-    .dict-item { 
-        margin-bottom: 8px; 
-        border-bottom: 1px dashed #ccc; 
-        padding-bottom: 4px;
-        font-size: 14px;
-    }
-    /* 単語（記号の塊）をクリック可能にするスタイル */
-    .word-container {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        cursor: pointer;
-        transition: background 0.2s;
-        padding: 2px;
-        vertical-align: bottom;
-    }
-    .word-container:hover { background-color: #dfe6e9; }
-    .word-ruby {
-        font-size: 10px;
-        color: #e67e22;
-        height: 12px;
-        font-weight: bold;
-    }
+        #game-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+            overflow: hidden;
+        }
+    
+        #main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    
+        /* ★サイドバー辞書のスタイル */
+        #dictionary-panel {
+            position: absolute;
+            right: -300px; /* 初期状態は隠す */
+            top: 0;
+            width: 280px;
+            height: 100%;
+            background: #fdfdfd;
+            border-left: 3px solid #2c3e50;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease; /* スライドのアニメーション */
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+    
+        /* 辞書が開いている時のクラス */
+        #dictionary-panel.open {
+            right: 0;
+        }
+    
+        /* ★辞書を開くボタン */
+        #dict-toggle {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            padding: 10px 20px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 110;
+        }
+    
+        #dict-toggle:hover { background: #34495e; }
+    
+        /* 単語帳の中身 */
+        #dictList {
+            margin-top: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .dict-item { 
+            margin-bottom: 12px; 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 8px;
+        }
+        #dictionary-panel { 
+            flex: 1; 
+            background: #f8f9fa; 
+            border: 2px solid #2c3e50; 
+            padding: 10px; 
+            max-height: 500px; 
+            overflow-y: auto; 
+        }
+        .dict-item { 
+            margin-bottom: 8px; 
+            border-bottom: 1px dashed #ccc; 
+            padding-bottom: 4px;
+            font-size: 14px;
+        }
+        /* 単語（記号の塊）をクリック可能にするスタイル */
+        .word-container {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            padding: 2px;
+            vertical-align: bottom;
+        }
+        .word-container:hover { background-color: #dfe6e9; }
+        .word-ruby {
+            font-size: 10px;
+            color: #e67e22;
+            height: 12px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+
+    <button id="dict-toggle" onclick="toggleDict()">📖 辞書を開く</button>
 
     <h2>Unknown Relics</h2>
     <canvas id="gameCanvas" width="480" height="480"></canvas>
@@ -100,8 +168,11 @@
         <div id="instructions">
             [↑][↓][←][→] 移動　/　[Enter] または [Space] 調べる・閉じる
         </div>
-        <div id="dictionary-panel">
-            <h3>解読辞書</h3>
+        <div id="dictionary-panel" id="dictPanel">
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin:0;">解読辞書</h3>
+                <button onclick="toggleDict()" style="cursor:pointer;">✕ 閉じる</button>
+            </div>
             <div id="dictList">記録なし</div>
         </div>
     </div>
@@ -115,6 +186,8 @@
         const TILE_SIZE = 32;
         const COLS = 15;
         const ROWS = 15;
+
+        let isDictOpen = false;
 
         // タイルの種類
         const TILE_FLOOR = 0;
@@ -383,6 +456,20 @@
                 div.className = 'dict-item';
                 div.innerHTML = `<strong>${word}</strong>: ${meaning}`;
                 list.appendChild(div);
+            }
+        }
+
+        function toggleDict() {
+            const panel = document.getElementById('dictionary-panel');
+            const btn = document.getElementById('dict-toggle');
+            isDictOpen = !isDictOpen;
+            
+            if (isDictOpen) {
+                panel.classList.add('open');
+                btn.innerText = "✕ 閉じる";
+            } else {
+                panel.classList.remove('open');
+                btn.innerText = "📖 辞書を開く";
             }
         }
 
