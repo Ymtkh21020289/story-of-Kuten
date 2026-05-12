@@ -2,11 +2,12 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>創作言語解読ゲーム - フィールド探索</title>
+    <title>創作言語解読ゲーム - フィールド探索 (White Mode)</title>
     <style>
+        /* --- 全体のスタイルをライトモードに変更 --- */
         body {
-            background-color: #1a1a1a;
-            color: #ecf0f1;
+            background-color: #f4f7f6; /* 薄いグレーの背景 */
+            color: #333;               /* 基本の文字色を濃いグレーに */
             font-family: 'Courier New', monospace, sans-serif;
             display: flex;
             flex-direction: column;
@@ -14,50 +15,45 @@
             margin-top: 30px;
         }
         canvas {
-            background-color: #000;
-            border: 4px solid #555;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            background-color: #fff;    /* ゲーム画面の背景を白に */
+            border: 4px solid #bdc3c7; /* 枠線を薄い色に */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             image-rendering: pixelated;
         }
         #ui-area {
             width: 480px;
             margin-top: 15px;
         }
-        /* メッセージウィンドウのスタイル */
+        /* メッセージウィンドウのスタイルを白ベースに変更 */
         #messageBox {
-            background-color: rgba(0, 0, 0, 0.8);
-            border: 2px solid #fff;
+            background-color: #fff;    /* ウィンドウ背景を白に */
+            color: #000;               /* 文字を黒に */
+            border: 2px solid #333;    /* 枠線を黒に */
             border-radius: 5px;
             padding: 15px;
             min-height: 80px;
             box-sizing: border-box;
             font-size: 18px;
             line-height: 1.5;
-            display: none; /* 初期状態は非表示 */
+            display: none;
         }
         #instructions {
             margin-top: 10px;
             font-size: 14px;
-            color: #bdc3c7;
+            color: #7f8c8d;            /* 説明文の色を少し薄く */
             text-align: center;
         }
-        /* 創作言語風のフォント指定（今回は記号で代用） */
-        .alien-text {
-            color: #f1c40f;
-            letter-spacing: 2px;
-        }
+
+        /* --- 創作言語文字（スプライトフォント）のスタイル --- */
         .conlang-char {
             display: inline-block;
-            /* 作成したスプライトシート画像を指定 */
-            background-image: url('conlang_font.png'); 
+            background-image: url('conlang_font.png'); /* 作成した画像を読み込み */
             background-repeat: no-repeat;
-            /* 1文字の表示サイズ（例：32px） */
-            width: 32px;
-            height: 32px;
-            /* 文字と文字の間隔調整 */
+            width: 32px;  /* 1文字の横幅(px) */
+            height: 32px; /* 1文字の縦幅(px) */
             margin-right: 2px;
-            /* 地の文と高さを合わせる調整 */
-            vertical-align: middle; 
+            vertical-align: middle; /* 地の文と高さを合わせる */
+            /* 画像が透過背景に黒文字の場合、これで白背景の上に黒文字が表示されます */
         }
     </style>
 </head>
@@ -126,7 +122,7 @@
             y: 1,
             dirX: 0,
             dirY: 1, // 初期は下向き
-            color: '#e74c3c'
+            color: '#d32f2f'
         };
 
         const conlangOrder = [
@@ -154,17 +150,17 @@
                 for (let x = 0; x < COLS; x++) {
                     let tile = map[y][x];
                     if (tile === TILE_FLOOR) {
-                        ctx.fillStyle = '#2c3e50';
+                        ctx.fillStyle = '#eee'; // 床：薄いグレー
                     } else if (tile === TILE_WALL) {
-                        ctx.fillStyle = '#7f8c8d';
+                        ctx.fillStyle = '#999'; // 壁：濃いグレー
                     } else if (tile === TILE_MONUMENT) {
-                        ctx.fillStyle = '#8e44ad'; // 石碑の色
+                        ctx.fillStyle = '#d1c4e9'; // 石碑：薄い紫
                     }
                     ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                     
-                    // 石碑の装飾
+                    // 石碑の装飾（明るい色に）
                     if (tile === TILE_MONUMENT) {
-                        ctx.fillStyle = '#f1c40f';
+                        ctx.fillStyle = '#fbc02d'; // ゴールド
                         ctx.fillRect(x * TILE_SIZE + 10, y * TILE_SIZE + 8, 12, 16);
                     }
                 }
@@ -180,8 +176,8 @@
             );
             ctx.fill();
 
-            // プレイヤーの向いている方向を示す目印
-            ctx.fillStyle = '#fff';
+            // プレイヤーの向いている方向を示す目印（濃い色に）
+            ctx.fillStyle = '#333';
             ctx.beginPath();
             ctx.arc(
                 player.x * TILE_SIZE + TILE_SIZE / 2 + (player.dirX * 8), 
