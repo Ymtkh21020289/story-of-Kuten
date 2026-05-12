@@ -266,54 +266,22 @@
             isMessageOpen = false;
         }
 
-        function translateToConlang(text) {
-            let translatedText = "";
-            
-            // 文字列を1文字ずつチェックして変換する
-            for (let i = 0; i < text.length; i++) {
-                let char = text[i];
-                
-                // 辞書に存在する文字なら変換、なければそのまま（スペースや記号など）
-                if (conlangDict[char]) {
-                    translatedText += conlangDict[char];
-                } else {
-                    translatedText += char;
-                }
-            }
-            return translatedText;
-        }
-
         function translateToConlangHtml(text) {
-            let htmlResult = "";
-            
-            for (let i = 0; i < text.length; i++) {
-                let char = text[i];
-                
-                if (charToIndexMap[char] !== undefined) {
-                    // 文字に対応するインデックスを取得
-                    let index = charToIndexMap[char];
-                    
-                    // インデックスから、画像上の (列, 行) を計算
-                    let col = index % FONT_CONF.cols;      // あ => 0, い => 1 ... つ => 17, て => 0
-                    let row = Math.floor(index / FONT_CONF.cols); // あ〜つ => 0, て〜や => 1
-                    
-                    // CSSの background-position の値を計算 (ネガティブオフセット)
+            return text.replace(matchRegex, (match) => {
+                if (charToIndexMap[match] !== undefined) {
+                    let index = charToIndexMap[match];
+                    let col = index % FONT_CONF.cols;
+                    let row = Math.floor(index / FONT_CONF.cols);
                     let posX = -(col * FONT_CONF.charWidth);
                     let posY = -(row * FONT_CONF.charHeight);
-                    
-                    // HTMLタグを組み立てる
-                    // 例: <span class="conlang-char" style="background-position: -32px 0px;"></span>
-                    htmlResult += `<span class="conlang-char" style="background-position: ${posX}px ${posY}px;"></span>`;
-                
-                } else if (char === " " || char === "　") {
-                    // スペースは幅を持たせた空白として処理
-                    htmlResult += "<span style='display:inline-block; width: 16px;'></span>";
+                    return `<span class="conlang-char" style="background-position: ${posX}px ${posY}px;"></span>`;
+                } else if (match === " " || match === "　") {
+                    // スペースは幅を持たせた空白として処理（お好みで調整）
+                    return "<span style='display:inline-block; width: 16px;'></span>";
                 } else {
-                    // 対応表にない文字（改行など）はそのまま出力
-                    htmlResult += char;
+                    return match; // 対応表にない文字はそのまま出力
                 }
-            }
-            return htmlResult;
+            });
         }
 
         // 初期描画
