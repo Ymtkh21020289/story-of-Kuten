@@ -139,6 +139,12 @@
             charToIndexMap[char] = index;
         });
 
+        // 文字数の多い順に並び替えた配列を作る（最長一致検索のため）
+        const sortedKeys = Object.keys(charToIndexMap).sort((a, b) => b.length - a.length);
+
+        // 検索用の正規表現パターンを自動生成
+        const matchRegex = new RegExp(sortedKeys.join('|') + '|[\\s\\S]', 'g');
+
         let isMessageOpen = false;
 
         // 描画処理
