@@ -411,9 +411,10 @@
                 const meaning = playerDictionary[word] || "";
     
                 // 単語をコンテナで包む
+                const meaningDisplay = (typeof isForDict !== 'undefined' && isForDict) ? "" : meaning;
                 htmlResult += `
                     <div class="word-container" onclick="openDictionaryInput('${word}')">
-                        <span class="word-ruby">${meaning}</span>
+                        <span class="word-ruby">${meaningDisplay}</span>
                         <span class="word-body">${charsHtml}</span>
                     </div>
                 `;
@@ -427,7 +428,7 @@
             return htmlResult;
         }
 
-        let playerDictionary = {}; // プレイヤーが登録した辞書データ { "nya": "ネコ" }
+        let playerDictionary = {};
 
         // 単語をクリックした時の処理
         function openDictionaryInput(conlangWord) {
