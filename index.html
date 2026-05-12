@@ -6,13 +6,15 @@
     <style>
         /* --- 全体のスタイルをライトモードに変更 --- */
         body {
-            background-color: #f4f7f6; /* 薄いグレーの背景 */
-            color: #333;               /* 基本の文字色を濃いグレーに */
+            background-color: #fff; 
+            color: #2c3e50; 
             font-family: 'Courier New', monospace, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             margin-top: 30px;
+            /* ★これを追加：画面全体の横スクロールを完全に禁止する */
+            overflow-x: hidden; 
         }
         canvas {
             background-color: #fff;    /* ゲーム画面の背景を白に */
@@ -72,17 +74,16 @@
             align-items: center;
         }
     
-        /* ★サイドバー辞書のスタイル */
         #dictionary-panel {
-            position: absolute;
-            right: -300px; /* 初期状態は隠す */
+            position: fixed; /* absolute から fixed に変更し、画面（ウィンドウ）を基準にする */
+            right: -320px;   /* パネルの幅（280px）より少し大きめのマイナス値を指定して完全に隠す */
             top: 0;
             width: 280px;
-            height: 100%;
+            height: 100vh;   /* 画面の高さいっぱいにする */
             background: #fdfdfd;
             border-left: 3px solid #2c3e50;
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-            transition: right 0.3s ease; /* スライドのアニメーション */
+            transition: right 0.3s ease; 
             z-index: 100;
             padding: 20px;
             box-sizing: border-box;
@@ -90,7 +91,7 @@
     
         /* 辞書が開いている時のクラス */
         #dictionary-panel.open {
-            right: 0;
+            right: 0; /* 画面の右端にピッタリくっつける */
         }
     
         /* ★辞書を開くボタン */
