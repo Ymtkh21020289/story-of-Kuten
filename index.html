@@ -55,6 +55,39 @@
             vertical-align: middle; /* 地の文と高さを合わせる */
             /* 画像が透過背景に黒文字の場合、これで白背景の上に黒文字が表示されます */
         }
+        #ui-area { display: flex; gap: 20px; width: 800px; } /* 横幅を広げる */
+    #main-panel { flex: 2; }
+    #dictionary-panel { 
+        flex: 1; 
+        background: #f8f9fa; 
+        border: 2px solid #2c3e50; 
+        padding: 10px; 
+        max-height: 500px; 
+        overflow-y: auto; 
+    }
+    .dict-item { 
+        margin-bottom: 8px; 
+        border-bottom: 1px dashed #ccc; 
+        padding-bottom: 4px;
+        font-size: 14px;
+    }
+    /* 単語（記号の塊）をクリック可能にするスタイル */
+    .word-container {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        padding: 2px;
+        vertical-align: bottom;
+    }
+    .word-container:hover { background-color: #dfe6e9; }
+    .word-ruby {
+        font-size: 10px;
+        color: #e67e22;
+        height: 12px;
+        font-weight: bold;
+    }
     </style>
 </head>
 <body>
@@ -66,6 +99,10 @@
         <div id="messageBox"></div>
         <div id="instructions">
             [↑][↓][←][→] 移動　/　[Enter] または [Space] 調べる・閉じる
+        </div>
+        <div id="dictionary-panel">
+            <h3>解読辞書</h3>
+            <div id="dictList">記録なし</div>
         </div>
     </div>
 
@@ -244,8 +281,9 @@
             if (map[targetY] && map[targetY][targetX] === TILE_MONUMENT) {
                 let key = `${targetX},${targetY}`;
     
-                let rawText = eventMessages[key] || "何も書かれていない。";
+                let rawText = eventMessages[key] || "何も書かれていないようだ。";
                 
+                // 「」の中身を単語として処理
                 let finalHtml = rawText.replace(/「(.*?)」/g, (match, p1) => {
                     return "「" + translateToConlangHtml(p1) + "」";
                 });
@@ -272,22 +310,80 @@
             isMessageOpen = false;
         }
 
-        function translateToConlangHtml(text) {
-            return text.replace(matchRegex, (match) => {
-                if (charToIndexMap[match] !== undefined) {
-                    let index = charToIndexMap[match];
-                    let col = index % FONT_CONF.cols;
-                    let row = Math.floor(index / FONT_CONF.cols);
-                    let posX = -(col * FONT_CONF.charWidth);
-                    let posY = -(row * FONT_CONF.charHeight);
-                    return `<span class="conlang-char" style="background-position: ${posX}px ${posY}px;"></span>`;
-                } else if (match === " " || match === "　") {
-                    // スペースは幅を持たせた空白として処理（お好みで調整）
-                    return "<span style='display:inline-block; width: 16px;'></span>";
-                } else {
-                    return match; // 対応表にない文字はそのまま出力
+        function translateToConlangHtml(fullText) {
+            // スペースで分割して単語の配列を作る
+            const words = fullText.split(/[\s　]+/);
+            let htmlResult = "";
+    
+            words.forEach((word, index) => {
+                if (word === "") return;
+    
+                // 各単語内の文字を変換
+                let charsHtml = "";
+                let remaining = word;
+                while (remaining.length > 0) {
+                    let match = remaining.match(matchRegex)[0];
+                    if (charToIndexMap[match] !== undefined) {
+                        let idx = charToIndexMap[match];
+                        let posX = -( (idx % FONT_CONF.cols) * FONT_CONF.charWidth );
+                        let posY = -( Math.floor(idx / FONT_CONF.cols) * FONT_CONF.charHeight );
+                        charsHtml += `<span class="conlang-char" style="background-position: ${posX}px ${posY}px;"></span>`;
+                    } else {
+                        charsHtml += match;
+                    }
+                    remaining = remaining.substring(match.length);
+                }
+    
+                // ルビ（登録済みの意味）を取得
+                const meaning = playerDictionary[word] || "";
+    
+                // 単語をコンテナで包む
+                htmlResult += `
+                    <div class="word-container" onclick="openDictionaryInput('${word}')">
+                        <span class="word-ruby">${meaning}</span>
+                        <span class="word-body">${charsHtml}</span>
+                    </div>
+                `;
+                
+                // 単語間にスペースを入れる
+                if (index < words.length - 1) {
+                    htmlResult += "<span style='display:inline-block; width: 12px;'></span>";
                 }
             });
+    
+            return htmlResult;
+        }
+
+        let playerDictionary = {}; // プレイヤーが登録した辞書データ { "nya": "ネコ" }
+
+        // 単語をクリックした時の処理
+        function openDictionaryInput(conlangWord) {
+            const currentMeaning = playerDictionary[conlangWord] || "";
+            const input = prompt(`単語「${conlangWord}」の意味を推測してください:`, currentMeaning);
+            
+            if (input !== null) {
+                playerDictionary[conlangWord] = input;
+                updateDictionaryUI();
+                // 現在のメッセージを再描画してルビを反映させる
+                const key = `${player.x + player.dirX},${player.y + player.dirY}`;
+                checkEvent(); 
+            }
+        }
+    
+        // 辞書UIの更新
+        function updateDictionaryUI() {
+            const list = document.getElementById('dictList');
+            if (Object.keys(playerDictionary).length === 0) {
+                list.innerHTML = "記録なし";
+                return;
+            }
+            list.innerHTML = "";
+            for (const [word, meaning] of Object.entries(playerDictionary)) {
+                const div = document.createElement('div');
+                div.className = 'dict-item';
+                div.innerHTML = `<strong>${word}</strong>: ${meaning}`;
+                list.appendChild(div);
+            }
         }
 
         // 初期描画
