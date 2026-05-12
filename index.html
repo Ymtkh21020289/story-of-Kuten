@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>創作言語解読ゲーム - フィールド探索</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ecf0f1;
+            font-family: 'Courier New', monospace, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 30px;
+        }
+        canvas {
+            background-color: #000;
+            border: 4px solid #555;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            image-rendering: pixelated;
+        }
+        #ui-area {
+            width: 480px;
+            margin-top: 15px;
+        }
+        /* メッセージウィンドウのスタイル */
+        #messageBox {
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 2px solid #fff;
+            border-radius: 5px;
+            padding: 15px;
+            min-height: 80px;
+            box-sizing: border-box;
+            font-size: 18px;
+            line-height: 1.5;
+            display: none; /* 初期状態は非表示 */
+        }
+        #instructions {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #bdc3c7;
+            text-align: center;
+        }
+        /* 創作言語風のフォント指定（今回は記号で代用） */
+        .alien-text {
+            color: #f1c40f;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Unknown Relics</h2>
+    <canvas id="gameCanvas" width="480" height="480"></canvas>
+    
+    <div id="ui-area">
+        <div id="messageBox"></div>
+        <div id="instructions">
+            [↑][↓][←][→] 移動　/　[Enter] または [Space] 調べる・閉じる
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const messageBox = document.getElementById('messageBox');
+
+        // 定数設定
+        const TILE_SIZE = 32;
+        const COLS = 15;
+        const ROWS = 15;
+
+        // タイルの種類
+        const TILE_FLOOR = 0;
+        const TILE_WALL = 1;
+        const TILE_MONUMENT = 2; // 調べられる石碑
+
+        // マップデータ (15x15)
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,0,1,0,1,1,1,1,1,0,0,1],
+            [1,0,1,2,0,0,0,0,0,0,0,1,0,0,1], // 左上に石碑
+            [1,0,1,1,1,1,1,1,1,1,0,1,0,0,1],
+            [1,0,0,0,0,0,0,0,0,1,0,1,0,0,1],
+            [1,1,1,1,1,0,1,1,0,1,0,1,1,0,1],
+            [1,0,0,0,0,0,1,2,0,1,0,0,0,0,1], // 中央に石碑
+            [1,1,1,1,1,0,1,1,1,1,0,1,1,1,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,0,1,1,1,1,1,1,1,1,1,0,1],
+            [1,0,1,0,0,0,0,0,0,0,0,0,1,0,1],
+            [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
+            [1,0,0,0,0,0,0,2,0,0,0,0,0,0,1], // 下部に石碑
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        ];
+
+        // 石碑ごとのメッセージデータ (x,y をキーにする)
+        const eventMessages = {
+            "3,3": "石碑に文字が刻まれている。<br><span class='alien-text'>⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚</span>",
+            "7,7": "古びた石碑だ。<br><span class='alien-text'>⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚ ⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚</span>",
+            "7,13": "他のものとは少し違う文字だ。<br><span class='alien-text'>⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚ ⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚ ⍙⍟⍎ ⍲⍰⍭ ⍝⍢⍚</span>"
+        };
+
+        // プレイヤー情報
+        let player = {
+            x: 1,
+            y: 1,
+            dirX: 0,
+            dirY: 1, // 初期は下向き
+            color: '#e74c3c'
+        };
+
+        let isMessageOpen = false;
+
+        // 描画処理
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // マップの描画
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let tile = map[y][x];
+                    if (tile === TILE_FLOOR) {
+                        ctx.fillStyle = '#2c3e50';
+                    } else if (tile === TILE_WALL) {
+                        ctx.fillStyle = '#7f8c8d';
+                    } else if (tile === TILE_MONUMENT) {
+                        ctx.fillStyle = '#8e44ad'; // 石碑の色
+                    }
+                    ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                    
+                    // 石碑の装飾
+                    if (tile === TILE_MONUMENT) {
+                        ctx.fillStyle = '#f1c40f';
+                        ctx.fillRect(x * TILE_SIZE + 10, y * TILE_SIZE + 8, 12, 16);
+                    }
+                }
+            }
+
+            // プレイヤーの描画
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(
+                player.x * TILE_SIZE + TILE_SIZE / 2, 
+                player.y * TILE_SIZE + TILE_SIZE / 2, 
+                TILE_SIZE / 2.5, 0, Math.PI * 2
+            );
+            ctx.fill();
+
+            // プレイヤーの向いている方向を示す目印
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(
+                player.x * TILE_SIZE + TILE_SIZE / 2 + (player.dirX * 8), 
+                player.y * TILE_SIZE + TILE_SIZE / 2 + (player.dirY * 8), 
+                3, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        // キー入力処理
+        window.addEventListener('keydown', (e) => {
+            // メッセージ表示中は、EnterかSpaceで閉じる処理のみ受け付ける
+            if (isMessageOpen) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    closeMessage();
+                }
+                return;
+            }
+
+            let nextX = player.x;
+            let nextY = player.y;
+
+            if (e.key === 'ArrowUp') {
+                nextY--;
+                player.dirX = 0; player.dirY = -1;
+            } else if (e.key === 'ArrowDown') {
+                nextY++;
+                player.dirX = 0; player.dirY = 1;
+            } else if (e.key === 'ArrowLeft') {
+                nextX--;
+                player.dirX = -1; player.dirY = 0;
+            } else if (e.key === 'ArrowRight') {
+                nextX++;
+                player.dirX = 1; player.dirY = 0;
+            } else if (e.key === 'Enter' || e.key === ' ') {
+                checkEvent();
+                return;
+            }
+
+            // 移動先のタイルが床(0)なら移動を許可
+            if (map[nextY] && map[nextY][nextX] === TILE_FLOOR) {
+                player.x = nextX;
+                player.y = nextY;
+            }
+
+            // 画面を再描画
+            draw();
+            // 矢印キーで画面がスクロールするのを防ぐ
+            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(e.key) > -1) {
+                e.preventDefault();
+            }
+        });
+
+        // 目の前を調べる処理
+        function checkEvent() {
+            let targetX = player.x + player.dirX;
+            let targetY = player.y + player.dirY;
+
+            // 目の前が石碑(2)か判定
+            if (map[targetY] && map[targetY][targetX] === TILE_MONUMENT) {
+                let key = `${targetX},${targetY}`;
+                let text = eventMessages[key] || "何も書かれていないようだ。";
+                showMessage(text);
+            }
+        }
+
+        // メッセージウィンドウの制御
+        function showMessage(text) {
+            messageBox.innerHTML = text;
+            messageBox.style.display = 'block';
+            isMessageOpen = true;
+        }
+
+        function closeMessage() {
+            messageBox.style.display = 'none';
+            isMessageOpen = false;
+        }
+
+        // 初期描画
+        draw();
+    </script>
+</body>
+</html>
