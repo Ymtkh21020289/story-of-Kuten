@@ -446,19 +446,37 @@
         // 辞書UIの更新
         function updateDictionaryUI() {
             const list = document.getElementById('dictList');
+            
+            // 登録がゼロの場合
             if (Object.keys(playerDictionary).length === 0) {
-                list.innerHTML = "記録なし";
+                list.innerHTML = "<div style='color:#95a5a6; padding:10px;'>記録なし</div>";
                 return;
             }
-            list.innerHTML = "";
+    
+            list.innerHTML = ""; // 一旦クリア
+    
             for (const [word, meaning] of Object.entries(playerDictionary)) {
                 const div = document.createElement('div');
                 div.className = 'dict-item';
-                div.innerHTML = `<strong>${word}</strong>: ${meaning}`;
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'space-between';
+    
+                // 創作言語側の表示（translateToConlangHtml を利用）
+                // ※ ルビが表示されないよう、辞書用にはシンプルな変換をかける
+                const conlangVisual = translateToConlangHtml(word);
+    
+                div.innerHTML = `
+                    <div style="cursor:pointer;" onclick="openDictionaryInput('${word}')">
+                        ${conlangVisual}
+                    </div>
+                    <div style="font-size: 16px; color: #2c3e50; border-left: 1px solid #ccc; padding-left: 10px; margin-left: 10px; flex-grow: 1; text-align: right;">
+                        ${meaning || "???"}
+                    </div>
+                `;
                 list.appendChild(div);
             }
         }
-
         function toggleDict() {
             const panel = document.getElementById('dictionary-panel');
             const btn = document.getElementById('dict-toggle');
