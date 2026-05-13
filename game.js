@@ -8,38 +8,58 @@ const ROWS = 15;
 
 const TILE_FLOOR = 0;
 const TILE_WALL = 1;
-const TILE_MONUMENT = 2; // 石碑
-const TILE_NPC = 3;      // ★追加：NPC
+const TILE_MONUMENT = 2;
+const TILE_NPC = 3;
+const TILE_WARP = 4; // ★新規追加：ワープポイント（階段や扉など）
 
-// マップデータ (15x15) - [5][10]の位置にNPC(3)を追加しました
-const map = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,0,1,0,1,1,1,1,1,0,0,1],
-    [1,0,1,2,0,0,0,0,0,0,0,1,0,0,1],
-    [1,0,1,1,1,1,1,1,1,1,0,1,0,0,1],
-    [1,0,0,0,0,0,0,0,0,1,3,1,0,0,1], // ←ここにNPC
-    [1,1,1,1,1,0,1,1,0,1,0,1,1,0,1],
-    [1,0,0,0,0,0,1,2,0,1,0,0,0,0,1],
-    [1,1,1,1,1,0,1,1,1,1,0,1,1,1,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
-    [1,0,1,0,1,1,1,1,1,1,1,1,1,0,1],
-    [1,0,1,0,0,0,0,0,0,0,0,0,1,0,1],
-    [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
-    [1,0,0,0,0,0,0,2,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-];
+// ★複数マップのデータ
+const mapData = {
+    "map_start": [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,0,1,0,1,1,1,1,1,0,0,1],
+        [1,0,1,2,0,0,0,0,0,0,0,1,0,0,1],
+        [1,0,1,1,1,1,1,1,1,1,0,1,0,0,1],
+        [1,0,0,0,0,0,0,0,0,1,3,1,0,0,1],
+        [1,1,1,1,1,0,1,1,0,1,0,1,1,0,1],
+        [1,0,0,0,0,0,1,2,0,1,0,0,0,0,4], // ★右端(14,7)にワープを配置
+        [1,1,1,1,1,0,1,1,1,1,0,1,1,1,1],
+        [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,1,1,1,1,1,1,1,1,1,0,1],
+        [1,0,1,0,0,0,0,0,0,0,0,0,1,0,1],
+        [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
+        [1,0,0,0,0,0,0,2,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    ],
+    "map_corridor": [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,0,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,2,0,1,1,1,1,1,1],
+        [4,0,0,0,0,0,0,0,0,0,0,0,0,0,4], // ★左端(0,7)と右端(14,7)にワープ
+        [1,1,1,1,1,1,0,1,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,0,0,0,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    ]
+};
+
+let currentMapId = "map_start"; // 現在のマップID
+let map = mapData[currentMapId]; // 描画・判定に使う現在のマップ配列
 
 let player = { x: 1, y: 1, dirX: 0, dirY: 1, color: '#e74c3c' };
 
-// ★会話イベント用の一時変数
 let isMessageOpen = false;
-let currentMessageQueue = []; // 複数ページのメッセージを保存する配列
-let messageIndex = 0;         // 現在何ページ目を読んでいるか
+let currentMessageQueue = [];
+let messageIndex = 0;
 
-// ------------------------------------------------------------------
-// 創作言語変換・辞書システム（前回から変更なし）
-// ------------------------------------------------------------------
+// --- 創作言語・辞書システム ---
 const FONT_CONF = { charWidth: 32, charHeight: 32, cols: 18 };
 const conlangOrder = [
     'a','ya','ta','la','ka','pa','ha','sa','na','ma','tya','lya','kya','pya','hya','sya','mya','pha', // 1行目
@@ -49,7 +69,6 @@ const conlangOrder = [
     'o','yo','to','lo','ko','po','ho','so','no','mo','tyo','lyo','kyo','pyo','hyo','syo','myo','pho', // 5行目
     'ltu','y','t','l','k','p','h','s','n','m','nn' // 6行目
 ];
-
 const charToIndexMap = {};
 conlangOrder.forEach((str, index) => { charToIndexMap[str] = index; });
 const sortedKeys = Object.keys(charToIndexMap).sort((a, b) => b.length - a.length);
@@ -78,7 +97,7 @@ function openDictionaryInput(conlangWord) {
     if (input !== null) {
         playerDictionary[conlangWord] = input;
         updateDictionaryUI();
-        if(isMessageOpen) showCurrentMessage(); // メッセージのルビを即座に更新
+        if(isMessageOpen) showCurrentMessage();
     }
 }
 
@@ -125,10 +144,8 @@ function translateToConlangHtml(fullText, isForDict = false) {
             }
             remaining = remaining.substring(match.length);
         }
-
         const meaning = playerDictionary[word] || "";
-        const meaningDisplay = isForDict ? "" : meaning; // 辞書の時はルビ非表示
-
+        const meaningDisplay = isForDict ? "" : meaning;
         htmlResult += `
             <div class="word-container" onclick="openDictionaryInput('${word}')">
                 <span class="word-ruby">${meaningDisplay}</span>
@@ -142,10 +159,7 @@ function translateToConlangHtml(fullText, isForDict = false) {
     return htmlResult;
 }
 
-// ------------------------------------------------------------------
-// イベント・描画処理
-// ------------------------------------------------------------------
-
+// --- 描画処理 ---
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < ROWS; y++) {
@@ -154,7 +168,8 @@ function draw() {
             if (tile === TILE_FLOOR) ctx.fillStyle = '#f8f9fa';
             else if (tile === TILE_WALL) ctx.fillStyle = '#bdc3c7';
             else if (tile === TILE_MONUMENT) ctx.fillStyle = '#8e44ad';
-            else if (tile === TILE_NPC) ctx.fillStyle = '#27ae60'; // ★NPCは緑色
+            else if (tile === TILE_NPC) ctx.fillStyle = '#27ae60';
+            else if (tile === TILE_WARP) ctx.fillStyle = '#3498db'; // ★ワープは青色
             
             ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
             
@@ -162,11 +177,15 @@ function draw() {
                 ctx.fillStyle = '#f1c40f';
                 ctx.fillRect(x * TILE_SIZE + 10, y * TILE_SIZE + 8, 12, 16);
             } else if (tile === TILE_NPC) {
-                // NPCの見た目（丸みを持たせるなど）
                 ctx.fillStyle = '#2ecc71';
                 ctx.beginPath();
                 ctx.arc(x * TILE_SIZE + TILE_SIZE/2, y * TILE_SIZE + TILE_SIZE/2, 12, 0, Math.PI*2);
                 ctx.fill();
+            } else if (tile === TILE_WARP) {
+                // ワープタイルの装飾
+                ctx.strokeStyle = '#2980b9';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x * TILE_SIZE + 4, y * TILE_SIZE + 4, TILE_SIZE - 8, TILE_SIZE - 8);
             }
         }
     }
@@ -180,64 +199,60 @@ function draw() {
     ctx.fill();
 }
 
-// ★イベント・NPCのデータ
+// --- 各種データ（マップごとに階層化） ---
 const eventData = {
-    monuments: {
-        "3,3": ["石碑だ。<br>「a i u e o」"],
-        "7,7": ["古い記録だ。<br>「yotiyoti 」"],
-        "7,13": ["「mimi lose」"]
-    },
-    npcs: {
-        "10,5": {
-            talkCount: 0, // 話しかけられた回数を記録
-            dialogues: [
-                // 初回 (talkCount: 0) の会話：3ページに分かれている
-                [
-                    "少女が心配そうにこちらを見ている。",
-                    "「yoti kounn hu ?」",
-                    "「yoti yo mi sitala nou ?」",
-                    "「・・・」",
-                    "「sitala ki ?」",
-                    "「a nou」",
-                    "「mi kute sike lo yoti」"
-                ],
-                // 2回目以降 (talkCount: 1以降) の会話：1ページのみ
-                [
-                    "「yoti kounn hu ?」",
-                    "「yoti nou yo mi sitala ?」",
-                    "「・・・」",
-                    "「sitala ki ?」",
-                    "「a nou」",
-                    "「mi kute sike lo yoti」"
+    "map_start": {
+        monuments: {
+            "3,3": ["石碑だ。<br>「a i u e o」"],
+            "7,7": ["古い記録だ。<br>「nya na n」"],
+            "7,13": ["「shi tsu」"]
+        },
+        npcs: {
+            "10,5": {
+                talkCount: 0,
+                dialogues: [
+                    ["フードの人物がいる。", "「nya a i u」"],
+                    ["「nya a i u」"]
                 ]
-            ]
+            }
+        },
+        autoEvents: {
+            "3,1": {
+                isDone: false,
+                dialogues: ["……何かの気配を感じる。", "頭の中に声が響く。<br>「wa wo n」"]
+            }
         }
     },
-    autoEvents: {
-        "3,1": { // 発生する座標
-            isDone: false, // 実行済みかどうかのフラグ（1回だけ発生させるため）
-            dialogues: [
-                "……何かの気配を感じる。",
-                "頭の中に直接声が響いてきた！<br>「wa wo n」",
-                "気配は消え去った。"
-            ]
-        }
+    "map_corridor": {
+        monuments: {
+            "7,6": ["新しい部屋の石碑だ。<br>「ko ko wa do ko da」"]
+        },
+        npcs: {},
+        autoEvents: {}
     }
 };
 
+// ★ワープポイントの設定データ
+const warpData = {
+    "map_start": {
+        "14,7": { targetMap: "map_corridor", targetX: 1, targetY: 7 } // 右端へ行くと通路へ
+    },
+    "map_corridor": {
+        "0,7": { targetMap: "map_start", targetX: 13, targetY: 7 },  // 左端へ行くとスタートに戻る
+        "14,7": { targetMap: "map_corridor", targetX: 14, targetY: 7 } // (未作成)次へ進む用のダミー
+    }
+};
+
+// --- キー入力と移動 ---
 window.addEventListener('keydown', (e) => {
     if (isDictOpen && e.key !== 'Escape') return; 
     if (e.key === 'Escape' && isDictOpen) { toggleDict(); return; }
 
-    // ★会話中のページ送り処理
     if (isMessageOpen) {
         if (e.key === 'Enter' || e.key === ' ') {
-            messageIndex++; // 次のページへ
-            if (messageIndex < currentMessageQueue.length) {
-                showCurrentMessage(); // まだページがあれば表示
-            } else {
-                closeMessage(); // なければ閉じる
-            }
+            messageIndex++;
+            if (messageIndex < currentMessageQueue.length) showCurrentMessage();
+            else closeMessage();
         }
         return;
     }
@@ -251,38 +266,56 @@ window.addEventListener('keydown', (e) => {
     else if (e.key === 'ArrowRight') { player.dirX = 1; player.dirY = 0; }
     else if (e.key === 'Enter' || e.key === ' ') { checkEvent(); return; }
 
-    if (map[nextY] && map[nextY][nextX] === TILE_FLOOR) {
+    // 移動先のタイルが床(0)またはワープ(4)なら移動を許可
+    if (map[nextY] && (map[nextY][nextX] === TILE_FLOOR || map[nextY][nextX] === TILE_WARP)) {
         player.x = nextX; player.y = nextY;
+        
+        checkWarp(); // ★ワープに乗ったか判定
+        draw();
+        checkAutoEvent();
+    } else {
+        draw();
     }
-    
-    checkAutoEvent();
-    draw();
+
     if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].indexOf(e.key) > -1) e.preventDefault();
 });
 
+// ★ワープ判定
+function checkWarp() {
+    let key = `${player.x},${player.y}`;
+    let currentWarps = warpData[currentMapId];
+    
+    if (currentWarps && currentWarps[key]) {
+        let warpInfo = currentWarps[key];
+        
+        // マップと座標の切り替え
+        currentMapId = warpInfo.targetMap;
+        map = mapData[currentMapId];
+        player.x = warpInfo.targetX;
+        player.y = warpInfo.targetY;
+    }
+}
+
+// イベント判定
 function checkEvent() {
     let targetX = player.x + player.dirX;
     let targetY = player.y + player.dirY;
     let targetTile = map[targetY] ? map[targetY][targetX] : -1;
     let key = `${targetX},${targetY}`;
+    
+    // 現在のマップのイベントデータを取得
+    let currentMapEvents = eventData[currentMapId];
 
     if (targetTile === TILE_MONUMENT) {
-        // 石碑のデータを取得（配列）
-        currentMessageQueue = eventData.monuments[key] || ["何も書かれていない。"];
+        currentMessageQueue = currentMapEvents.monuments[key] || ["何も書かれていない。"];
         messageIndex = 0;
         showCurrentMessage();
-
     } else if (targetTile === TILE_NPC) {
-        // ★NPCのデータを取得
-        let npc = eventData.npcs[key];
+        let npc = currentMapEvents.npcs[key];
         if (npc) {
-            // 会話回数に応じて配列を切り替える
-            if (npc.talkCount === 0) {
-                currentMessageQueue = npc.dialogues[0];
-            } else {
-                currentMessageQueue = npc.dialogues[1]; // 今回は2パターンのみ
-            }
-            npc.talkCount++; // 会話回数を増やす
+            if (npc.talkCount === 0) currentMessageQueue = npc.dialogues[0];
+            else currentMessageQueue = npc.dialogues[npc.dialogues.length - 1];
+            npc.talkCount++;
         } else {
             currentMessageQueue = ["返事がない。"];
         }
@@ -291,19 +324,29 @@ function checkEvent() {
     }
 }
 
-// ★現在のページのメッセージを描画する関数
+function checkAutoEvent() {
+    let key = `${player.x},${player.y}`;
+    let currentMapEvents = eventData[currentMapId];
+    
+    if (currentMapEvents && currentMapEvents.autoEvents) {
+        let autoEvent = currentMapEvents.autoEvents[key];
+        if (autoEvent && !autoEvent.isDone) {
+            autoEvent.isDone = true;
+            currentMessageQueue = autoEvent.dialogues;
+            messageIndex = 0;
+            showCurrentMessage();
+        }
+    }
+}
+
 function showCurrentMessage() {
     let rawText = currentMessageQueue[messageIndex];
-    
     let finalHtml = rawText.replace(/「(.*?)」/g, (match, p1) => {
         return "「" + translateToConlangHtml(p1) + "」";
     });
-    
-    // もし続きのページがあれば、点滅する▼を表示
     if (messageIndex < currentMessageQueue.length - 1) {
         finalHtml += "<div class='next-triangle'>▼</div>";
     }
-    
     messageBox.innerHTML = finalHtml;
     messageBox.style.display = 'block';
     isMessageOpen = true;
@@ -315,18 +358,4 @@ function closeMessage() {
     currentMessageQueue = [];
 }
 
-function checkAutoEvent() {
-    let key = `${player.x},${player.y}`;
-    let autoEvent = eventData.autoEvents[key];
-    
-    // その座標に自動イベントが存在し、かつ「未実行」なら開始する
-    if (autoEvent && !autoEvent.isDone) {
-        autoEvent.isDone = true; // 二度と発生しないようにフラグを立てる
-        
-        // 会話メッセージのキューにセットして表示
-        currentMessageQueue = autoEvent.dialogues;
-        messageIndex = 0;
-        showCurrentMessage();
-    }
-}
 draw();
