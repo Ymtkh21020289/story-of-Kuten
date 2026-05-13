@@ -263,6 +263,7 @@
                 panel.classList.remove('open');
                 btn.innerText = "📖 辞書を開く";
             }
+            btn.blur();
         }
     
         function openDictionaryInput(conlangWord) {
@@ -271,7 +272,6 @@
             if (input !== null) {
                 playerDictionary[conlangWord] = input;
                 updateDictionaryUI();
-                if(!isDictOpen) toggleDict();
                 if(isMessageOpen) showCurrentMessage(); // メッセージのルビを即座に更新
             }
         }
