@@ -204,28 +204,44 @@ const eventData = {
     "map_start": {
         monuments: {
             "3,3": ["石碑だ。<br>「a i u e o」"],
-            "7,7": ["古い記録だ。<br>「nya na n」"],
+            "7,7": ["古い記録だ。<br>「hele syutepo hu」"],
             "7,13": ["「shi tsu」"]
         },
         npcs: {
             "10,5": {
                 talkCount: 0,
                 dialogues: [
-                    ["フードの人物がいる。", "「nya a i u」"],
-                    ["「nya a i u」"]
+                    [
+                        "少女が心配そうにこちらを見ている。",
+                        "「yoti kounn hu ?」",
+                        "「yoti yo mi sitala nou ?」",
+                        "「・・・」",
+                        "「sitala ki ?」",
+                        "「mi nou」",
+                        "「mi kute sike lo yoti」"
+                    ],
+                    [
+                        "少女が心配そうにこちらを見ている。",
+                        "「yoti kounn hu ?」",
+                        "「yoti yo mi sitala nou ?」",
+                        "「・・・」",
+                        "「sitala ki ?」",
+                        "「a nou」",
+                        "「mi kute sike lo yoti」"
+                    ]
                 ]
             }
         },
         autoEvents: {
             "3,1": {
                 isDone: false,
-                dialogues: ["……何かの気配を感じる。", "頭の中に声が響く。<br>「wa wo n」"]
+                dialogues: ["……何かの気配を感じる。", "頭の中に声が響く。","「yoti yahemu ki」"]
             }
         }
     },
     "map_corridor": {
         monuments: {
-            "7,6": ["新しい部屋の石碑だ。<br>「ko ko wa do ko da」"]
+            "7,6": ["新しい部屋の石碑だ。<br>「yoti phaina hu」"]
         },
         npcs: {},
         autoEvents: {}
